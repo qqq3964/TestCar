@@ -102,12 +102,47 @@ class PointCloud(ABC):
         ref_cs_rec = nusc.get('calibrated_sensor', ref_sd_rec['calibrated_sensor_token'])
         ref_time = 1e-6 * ref_sd_rec['timestamp']
 
-        sample_data_token = sample_rec['data'][chan]
-        current_sd_rec = nusc.get('sample_data', sample_data_token)
+        # 기준 샘플에서 앞뒤로 누적할 샘플 토큰 리스트 생성
+        sample_tokens = []
+        
+        # 1. prev 방향으로 가능한 만큼 수집 (최대 nsamples//2 개)
+        n_prev_target = nsamples // 2
+        cur_sample = sample_rec
+        prev_tokens = []
+        for _ in range(n_prev_target):
+            if cur_sample['prev'] == '':
+                break
+            cur_sample = nusc.get('sample', cur_sample['prev'])
+            prev_tokens.insert(0, cur_sample['token'])  # 앞에 추가 (시간순 정렬)
+        
+        # 2. 기준 샘플 추가
+        sample_tokens.extend(prev_tokens)
+        sample_tokens.append(sample_rec['token'])
+        
+        # 3. next 방향으로 가능한 만큼 수집
+        # prev에서 부족한 만큼 next에서 더 많이 수집하여 총 nsamples 개수 맞추기
+        n_prev_actual = len(prev_tokens)
+        n_next_target = nsamples - n_prev_actual - 1  # 기준 샘플 1개 제외
+        cur_sample = sample_rec
+        next_tokens = []
+        for _ in range(n_next_target):
+            if cur_sample['next'] == '':
+                break
+            cur_sample = nusc.get('sample', cur_sample['next'])
+            next_tokens.append(cur_sample['token'])
+        
+        sample_tokens.extend(next_tokens)
+        
+        # 실제 수집된 토큰 개수 로그
+        print(f"Accumulating {len(sample_tokens)} samples: {n_prev_actual} prev + 1 current + {len(next_tokens)} next")
 
         prev_pc = None
 
-        for i in range(nsamples):
+        # 4. 수집된 토큰들을 순회하며 포인트클라우드 누적
+        for i, token in enumerate(sample_tokens):
+            current_sample = nusc.get('sample', token)
+            current_sd_rec = nusc.get('sample_data', current_sample['data'][chan])
+            
             current_pc = cls.from_file(osp.join(nusc.dataroot, current_sd_rec['filename']))
             current_pc.remove_close(min_distance)
 
@@ -146,12 +181,6 @@ class PointCloud(ABC):
             all_pc.points = np.hstack((all_pc.points, current_pc.points))
 
             prev_pc = current_pc
-
-            if sample_rec['prev'] == '':
-                break
-            else:
-                sample_rec = nusc.get('sample', sample_rec['prev'])
-                current_sd_rec = nusc.get('sample_data', sample_rec['data'][chan])
 
         return all_pc, all_times
 

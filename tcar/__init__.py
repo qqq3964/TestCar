@@ -1,1 +1,1 @@
-from tcar.tcar import *
+from .tcar import *
