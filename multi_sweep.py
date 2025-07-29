@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 dataroot = '/home/taewan/TCAR_DATA'
 nusc = TestCar(version='v1.0-trainval', dataroot=dataroot, verbose=True)
 
-cur_scene = nusc.scene[20]
+cur_scene = nusc.scene[10]
 cur_sample = nusc.get('sample', cur_scene['last_sample_token'])
 
 sensor = 'LIDAR_TOP'

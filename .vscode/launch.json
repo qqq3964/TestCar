@@ -8,7 +8,7 @@
             "name": "test",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/multi_sweep.py",
+            "program": "${workspaceFolder}/mapping.py",
             "console": "integratedTerminal",
             "justMyCode": false
         }
