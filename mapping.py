@@ -10,7 +10,7 @@ from PIL import Image
 import cv2
 from nuscenes.utils.geometry_utils import view_points, transform_matrix
 
-dataroot = '/home/taewan/TCAR_DATA' 
+dataroot = '/home/taewan/TCAR_DATA_origin' 
 nusc = TestCar(version='v1.0-trainval', dataroot=dataroot, verbose=True)
 
 # cur_sample = nusc.get('sample', cur_scene['first_sample_token'])
