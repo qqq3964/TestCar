@@ -7,21 +7,85 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pyquaternion import Quaternion
 
+TYPE_MAP = {
+    0: "UNKNOWN",
+    1: "CAR",
+    2: "BUS",
+    3: "TRUCK",
+    4: "CONSTRN_VEH",
+    5: "CYC",
+    6: "TRICYCLE",
+    7: "PED",
+    8: "TRAFFIC_CONE",
+    9: "BARROW",
+    10: "ANIMAL",
+    11: "WARN_TRIANGLE",
+    12: "BIRD",
+    13: "WATER_BARRIER",
+    14: "LAMP_POST",
+    15: "TRAFFIC_SIGN",
+    16: "WARN_POST",
+    17: "TRAFFIC_BARREL",
+    18: "ARTICULATED_HEAD",
+    19: "ARTICULATED_BODY",
+    20: "VISION_OBSTACLE",
+    50: "STATIC_UNKNOWN"
+}
+
+# Mapping from class name to RGB color for bounding box visualization
+CLASS_COLOR = {
+    "UNKNOWN": (0.5, 0.5, 0.5),           # Gray
+    "CAR": (1.0, 0.0, 0.0),               # Red
+    "BUS": (0.0, 0.5, 1.0),               # Sky blue
+    "TRUCK": (1.0, 0.5, 0.0),             # Orange
+    "CONSTRN_VEH": (0.6, 0.4, 0.0),       # Brown
+    "CYC": (1.0, 1.0, 0.0),               # Yellow
+    "TRICYCLE": (0.7, 1.0, 0.7),          # Light green
+    "PED": (1.0, 0.0, 1.0),               # Magenta
+    "TRAFFIC_CONE": (1.0, 1.0, 1.0),      # White
+    "BARROW": (0.6, 0.3, 0.0),            # Dark orange
+    "ANIMAL": (0.8, 0.4, 0.4),            # Light brown
+    "WARN_TRIANGLE": (1.0, 0.6, 0.6),     # Light red
+    "BIRD": (0.4, 0.4, 1.0),              # Blueish
+    "WATER_BARRIER": (0.4, 0.6, 1.0),     # Light blue
+    "LAMP_POST": (0.6, 0.6, 0.6),         # Light gray
+    "TRAFFIC_SIGN": (1.0, 1.0, 0.6),      # Pale yellow
+    "WARN_POST": (1.0, 0.8, 0.6),         # Orange-pink
+    "TRAFFIC_BARREL": (1.0, 0.6, 0.2),    # Orange barrel
+    "ARTICULATED_HEAD": (0.2, 1.0, 1.0),  # Cyan
+    "ARTICULATED_BODY": (0.0, 0.8, 0.8),  # Dark cyan
+    "VISION_OBSTACLE": (0.8, 0.0, 0.4),   # Deep magenta
+    "STATIC_UNKNOWN": (0.2, 0.2, 0.2)     # Dark gray
+}
+
 dataroot = '/home/taewan/TCAR_DATA' 
 nusc = TestCar(version='v1.0-trainval', dataroot=dataroot, verbose=True)
 
-cur_scene = nusc.scene[2]
+cur_scene = nusc.scene[3]
 cur_sample = nusc.get('sample', cur_scene['last_sample_token'])
 # next_sample = nusc.get('sample', cur_sample['next'])
 
-def create_3d_bbox(center, size, yaw=0.0):
+def parse_type(type_byte: str) -> str:
+    """
+    Convert single-byte string like '\x03' to class name
+    """
+    if isinstance(type_byte, str):
+        type_int = ord(type_byte)
+    elif isinstance(type_byte, bytes):
+        type_int = type_byte[0]
+    else:
+        raise TypeError("Expected str or bytes input.")
+
+    return TYPE_MAP.get(type_int, f"UNKNOWN_TYPE_{type_int}")
+
+def create_3d_bbox(center, size, yaw=0.0, color=(1,0,0)):
     # center: [x, y, z], size: [w, l, h]
     w, l, h = size
     bbox = o3d.geometry.OrientedBoundingBox()
     bbox.center = center
     bbox.extent = [w, l, h]
     bbox.R = o3d.geometry.OrientedBoundingBox.get_rotation_matrix_from_axis_angle([0, 0, yaw])
-    bbox.color = (1, 0, 0)
+    bbox.color = color
     return bbox
 
 def transform_matrix(translation: np.ndarray = np.array([0, 0, 0]),
@@ -55,7 +119,9 @@ lidar2ego = transform_matrix(cs_rec['translation'], Quaternion(cs_rec['rotation'
 bboxes = []
 for ann in cur_sample['anns']:
     rc_ann = nusc.get('sample_annotation', ann)
-    bbox = create_3d_bbox(rc_ann['box_center'], rc_ann['size'], yaw=rc_ann['yaw'])
+    class_type = parse_type(rc_ann['type'])
+    color = CLASS_COLOR.get(class_type, (0.0, 1.0, 0.0))
+    bbox = create_3d_bbox(rc_ann['box_center'], rc_ann['size'], yaw=rc_ann['yaw'], color=color)
     bboxes.append(bbox)
 
 pcl_path = osp.join(dataroot, lidar_rec['filename'])

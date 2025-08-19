@@ -12,11 +12,10 @@ from nuscenes.utils.geometry_utils import view_points, transform_matrix
 
 dataroot = '/home/taewan/TCAR_DATA' 
 nusc = TestCar(version='v1.0-trainval', dataroot=dataroot, verbose=True)
-
-# cur_sample = nusc.get('sample', cur_scene['first_sample_token'])
-# next_sample = nusc.get('sample', cur_sample['next'])
-
 cur_scene = nusc.scene[5]
 
-nusc.pointcloud_to_image(cur_scene['first_sample_token'])
-nusc.image_to_pointcloud(cur_scene['first_sample_token'])
+cur_sample = nusc.get('sample', cur_scene['first_sample_token'])
+next_sample = nusc.get('sample', cur_sample['next'])
+
+nusc.pointcloud_to_image(cur_sample['next'])
+nusc.image_to_pointcloud(cur_sample['next'])
