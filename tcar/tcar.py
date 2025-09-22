@@ -12,7 +12,7 @@ from PIL import Image
 import cv2
 from nuscenes.utils.geometry_utils import transform_matrix
 import numpy as np
-import open3d as o3d
+# import open3d as o3d
 from tcar.utils import LidarPointCloud
 
 class TestCar(NuScenes):
@@ -226,12 +226,12 @@ class TestCar(NuScenes):
         total_lidar_points = np.concatenate(total_lidar_points, axis=0)
         total_lidar_colors = np.concatenate(total_lidar_colors, axis=0)
         
-        # mapping image to lidar
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(total_lidar_points)
-        pcd.colors = o3d.utility.Vector3dVector(total_lidar_colors)
+        # # mapping image to lidar
+        # pcd = o3d.geometry.PointCloud()
+        # pcd.points = o3d.utility.Vector3dVector(total_lidar_points)
+        # pcd.colors = o3d.utility.Vector3dVector(total_lidar_colors)
         
-        o3d.visualization.draw_geometries([pcd])
+        # o3d.visualization.draw_geometries([pcd])
             
 
     def pointcloud_to_image(self,

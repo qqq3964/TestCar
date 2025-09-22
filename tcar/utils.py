@@ -13,7 +13,7 @@ from pyquaternion import Quaternion
 from nuscenes.lidarseg.lidarseg_utils import colormap_to_colors, create_lidarseg_legend
 from nuscenes.utils.data_io import load_bin_file
 from nuscenes.utils.geometry_utils import view_points, transform_matrix
-import open3d as o3d
+# import open3d as o3d
 
 
 
@@ -53,20 +53,20 @@ class PointCloud(ABC):
         """
         pass
     
-    def convert_to_o3d(self):
-        pc = o3d.geometry.PointCloud()
-        xyz = self.points[:3, :].T
-        pc.points = o3d.utility.Vector3dVector(xyz)
+    # def convert_to_o3d(self):
+    #     pc = o3d.geometry.PointCloud()
+    #     xyz = self.points[:3, :].T
+    #     pc.points = o3d.utility.Vector3dVector(xyz)
 
-        # intensity
-        if self.points.shape[0] >= 4:
-            intensity = self.points[3, :]  # shape: (N,)
-            # Normalize intensity to 0~1 range (for visualization)
-            intensity = intensity / 255.0
-            colors = np.tile(intensity[:, np.newaxis], (1, 3))  # shape: (N, 3)
-            pc.colors = o3d.utility.Vector3dVector(colors)
+    #     # intensity
+    #     if self.points.shape[0] >= 4:
+    #         intensity = self.points[3, :]  # shape: (N,)
+    #         # Normalize intensity to 0~1 range (for visualization)
+    #         intensity = intensity / 255.0
+    #         colors = np.tile(intensity[:, np.newaxis], (1, 3))  # shape: (N, 3)
+    #         pc.colors = o3d.utility.Vector3dVector(colors)
 
-        return pc
+    #     return pc
     
     @staticmethod
     def convert_from_o3d(pc):
@@ -83,77 +83,77 @@ class PointCloud(ABC):
         
         return points_with_intensity
     
-    @classmethod
-    def from_file_multisample(cls,
-                            nusc: 'NuScenes',
-                            sample_rec: Dict,
-                            chan: str,
-                            ref_chan: str,
-                            nsamples: int = 5,
-                            min_distance: float = 1.0) -> Tuple['PointCloud', np.ndarray]:
+    # @classmethod
+    # def from_file_multisample(cls,
+    #                         nusc: 'NuScenes',
+    #                         sample_rec: Dict,
+    #                         chan: str,
+    #                         ref_chan: str,
+    #                         nsamples: int = 5,
+    #                         min_distance: float = 1.0) -> Tuple['PointCloud', np.ndarray]:
 
-        points = np.zeros((cls.nbr_dims(), 0), dtype=np.float32 if cls == LidarPointCloud else np.float64)
-        all_pc = cls(points)
-        all_times = np.zeros((1, 0))
+    #     points = np.zeros((cls.nbr_dims(), 0), dtype=np.float32 if cls == LidarPointCloud else np.float64)
+    #     all_pc = cls(points)
+    #     all_times = np.zeros((1, 0))
 
-        ref_sd_token = sample_rec['data'][ref_chan]
-        ref_sd_rec = nusc.get('sample_data', ref_sd_token)
-        ref_pose_rec = nusc.get('ego_pose', ref_sd_rec['ego_pose_token'])
-        ref_cs_rec = nusc.get('calibrated_sensor', ref_sd_rec['calibrated_sensor_token'])
-        ref_time = 1e-6 * ref_sd_rec['timestamp']
+    #     ref_sd_token = sample_rec['data'][ref_chan]
+    #     ref_sd_rec = nusc.get('sample_data', ref_sd_token)
+    #     ref_pose_rec = nusc.get('ego_pose', ref_sd_rec['ego_pose_token'])
+    #     ref_cs_rec = nusc.get('calibrated_sensor', ref_sd_rec['calibrated_sensor_token'])
+    #     ref_time = 1e-6 * ref_sd_rec['timestamp']
 
-        sample_data_token = sample_rec['data'][chan]
-        current_sd_rec = nusc.get('sample_data', sample_data_token)
+    #     sample_data_token = sample_rec['data'][chan]
+    #     current_sd_rec = nusc.get('sample_data', sample_data_token)
 
-        prev_pc = None
+    #     prev_pc = None
 
-        for i in range(nsamples):
-            current_pc = cls.from_file(osp.join(nusc.dataroot, current_sd_rec['filename']))
-            current_pc.remove_close(min_distance)
+    #     for i in range(nsamples):
+    #         current_pc = cls.from_file(osp.join(nusc.dataroot, current_sd_rec['filename']))
+    #         current_pc.remove_close(min_distance)
 
-            current_pose_rec = nusc.get('ego_pose', current_sd_rec['ego_pose_token'])
-            global_from_car = transform_matrix(current_pose_rec['translation'], Quaternion(current_pose_rec['rotation']), inverse=False)
-            current_cs_rec = nusc.get('calibrated_sensor', current_sd_rec['calibrated_sensor_token'])
-            car_from_current = transform_matrix(current_cs_rec['translation'], Quaternion(current_cs_rec['rotation']), inverse=True)
+    #         current_pose_rec = nusc.get('ego_pose', current_sd_rec['ego_pose_token'])
+    #         global_from_car = transform_matrix(current_pose_rec['translation'], Quaternion(current_pose_rec['rotation']), inverse=False)
+    #         current_cs_rec = nusc.get('calibrated_sensor', current_sd_rec['calibrated_sensor_token'])
+    #         car_from_current = transform_matrix(current_cs_rec['translation'], Quaternion(current_cs_rec['rotation']), inverse=True)
 
-            # pose transformation
-            ref_from_car = transform_matrix(ref_cs_rec['translation'], Quaternion(ref_cs_rec['rotation']), inverse=True)
-            car_from_global = transform_matrix(ref_pose_rec['translation'], Quaternion(ref_pose_rec['rotation']), inverse=True)
-            trans_matrix = reduce(np.dot, [ref_from_car, car_from_global, global_from_car, car_from_current])
-            current_pc.transform(trans_matrix)
+    #         # pose transformation
+    #         ref_from_car = transform_matrix(ref_cs_rec['translation'], Quaternion(ref_cs_rec['rotation']), inverse=True)
+    #         car_from_global = transform_matrix(ref_pose_rec['translation'], Quaternion(ref_pose_rec['rotation']), inverse=True)
+    #         trans_matrix = reduce(np.dot, [ref_from_car, car_from_global, global_from_car, car_from_current])
+    #         current_pc.transform(trans_matrix)
 
-            if prev_pc is not None:
-                src = current_pc.convert_to_o3d()
-                tgt = prev_pc.convert_to_o3d()
+    #         if prev_pc is not None:
+    #             src = current_pc.convert_to_o3d()
+    #             tgt = prev_pc.convert_to_o3d()
 
-                src = src.voxel_down_sample(voxel_size=0.2)
-                tgt = tgt.voxel_down_sample(voxel_size=0.2)
+    #             src = src.voxel_down_sample(voxel_size=0.2)
+    #             tgt = tgt.voxel_down_sample(voxel_size=0.2)
 
-                reg = o3d.pipelines.registration.registration_generalized_icp(
-                    src, tgt, max_correspondence_distance=1.0,
-                    init=np.eye(4),
-                    estimation_method=o3d.pipelines.registration.TransformationEstimationForGeneralizedICP(),
-                    criteria=o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=30))
+    #             reg = o3d.pipelines.registration.registration_generalized_icp(
+    #                 src, tgt, max_correspondence_distance=1.0,
+    #                 init=np.eye(4),
+    #                 estimation_method=o3d.pipelines.registration.TransformationEstimationForGeneralizedICP(),
+    #                 criteria=o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=30))
 
-                aligned_src = src.transform(reg.transformation)
-                aligned_np = cls.convert_from_o3d(aligned_src)
-                current_pc.points = aligned_np 
+    #             aligned_src = src.transform(reg.transformation)
+    #             aligned_np = cls.convert_from_o3d(aligned_src)
+    #             current_pc.points = aligned_np 
 
-            # accumulation
-            time_lag = ref_time - 1e-6 * current_sd_rec['timestamp']
-            times = time_lag * np.ones((1, current_pc.nbr_points()))
-            all_times = np.hstack((all_times, times))
-            all_pc.points = np.hstack((all_pc.points, current_pc.points))
+    #         # accumulation
+    #         time_lag = ref_time - 1e-6 * current_sd_rec['timestamp']
+    #         times = time_lag * np.ones((1, current_pc.nbr_points()))
+    #         all_times = np.hstack((all_times, times))
+    #         all_pc.points = np.hstack((all_pc.points, current_pc.points))
 
-            prev_pc = current_pc
+    #         prev_pc = current_pc
 
-            if sample_rec['prev'] == '':
-                break
-            else:
-                sample_rec = nusc.get('sample', sample_rec['prev'])
-                current_sd_rec = nusc.get('sample_data', sample_rec['data'][chan])
+    #         if sample_rec['prev'] == '':
+    #             break
+    #         else:
+    #             sample_rec = nusc.get('sample', sample_rec['prev'])
+    #             current_sd_rec = nusc.get('sample_data', sample_rec['data'][chan])
 
-        return all_pc, all_times
+    #     return all_pc, all_times
 
     # @classmethod
     # def from_file_multisample(cls,
